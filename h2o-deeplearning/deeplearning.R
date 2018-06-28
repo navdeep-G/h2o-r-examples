@@ -48,7 +48,6 @@ example(h2o.deeplearning)
 #
 #We visualize the nature of H2O Deep Learning (DL), H2O's tree methods (GBM/DRF) and H2O's generalized linear modeling (GLM) by plotting the decision boundary between the red and black spirals:
 #
-setwd("~/h2o-tutorials/tutorials/deeplearning") ##For RStudio
 spiral <- h2o.importFile(path = normalizePath("../data/spiral.csv"))
 grid   <- h2o.importFile(path = normalizePath("../data/grid.csv"))
 # Define helper to plot contours
@@ -64,7 +63,7 @@ plotC <- function(name, model, data=spiral, g=grid) {
 #
 #We build a few different models:
 #
-#dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
+dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
 par(mfrow=c(2,2)) #set up the canvas for 2x2 plots
 plotC( "DL", h2o.deeplearning(1:2,3,spiral,epochs=1e3))
 plotC("GBM", h2o.gbm         (1:2,3,spiral))
@@ -73,7 +72,7 @@ plotC("GLM", h2o.glm         (1:2,3,spiral,family="binomial"))
 #
 #Let's investigate some more Deep Learning models. First, we explore the evolution over training time (number of passes over the data), and we use checkpointing to continue training the same model:
 #
-#dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
+dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
 par(mfrow=c(2,2)) #set up the canvas for 2x2 plots
 ep <- c(1,250,500,750)
 plotC(paste0("DL ",ep[1]," epochs"),
@@ -91,7 +90,7 @@ plotC(paste0("DL ",ep[4]," epochs"),
 #
 #You can see how the network learns the structure of the spirals with enough training time. We explore different network architectures next:
 #
-#dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
+dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
 par(mfrow=c(2,2)) #set up the canvas for 2x2 plots
 for (hidden in list(c(11,13,17,19),c(42,42,42),c(200,200),c(1000))) {
   plotC(paste0("DL hidden=",paste0(hidden, collapse="x")),
@@ -100,7 +99,7 @@ for (hidden in list(c(11,13,17,19),c(42,42,42),c(200,200),c(1000))) {
 #
 #It is clear that different configurations can achieve similar performance, and that tuning will be required for optimal performance. Next, we compare between different activation functions, including one with 50% dropout regularization in the hidden layers:
 #
-#dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
+dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
 par(mfrow=c(2,2)) #set up the canvas for 2x2 plots
 for (act in c("Tanh","Maxout","Rectifier","RectifierWithDropout")) {
   plotC(paste0("DL ",act," activation"), 
@@ -126,7 +125,7 @@ test   <- h2o.assign(splits[[3]], "test.hex")  # 20%
 #
 #Here's a scalable way to do scatter plots via binning (works for categorical and numeric columns) to get more familiar with the dataset.
 #
-#dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
+dev.new(noRStudioGD=FALSE) #direct plotting output to a new window
 par(mfrow=c(1,1)) # reset canvas
 plot(h2o.tabulate(df, "Elevation",                       "Cover_Type"))
 plot(h2o.tabulate(df, "Horizontal_Distance_To_Roadways", "Cover_Type"))
