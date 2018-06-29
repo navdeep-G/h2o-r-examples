@@ -1,0 +1,403 @@
+---
+title: "H2O AutoML Lending Club Demo"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. To execute a code chunk, click *Run* (play) button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+If you're viewing the Rmd file (code only), but you'd like to see the code *and* output rendered as an HTML document, an online HTML of this file is available [here](https://github.com/navdeep-G/sdss-h2o-automl/blob/master/R/automl_lending_club.html).
+
+### Start H2O
+
+Load the **h2o** R library and initialize a local H2O cluster.
+
+```{r}
+library(h2o)
+h2o.init()
+h2o.no_progress()  # Turn off progress bars for notebook readability
+```
+
+### Load Data
+
+For the AutoML Lending Club demo, we use the [Lending Club](https://github.com/navdeep-G/sdss-h2o-automl/blob/master/data/LoanStats3a.csv) dataset ([Lending Club](https://www.lendingclub.com/) is a peer-to-peer lending platform).  The goal here is to predict if a borrower will default or not given various features about their financial history.
+
+```{r}
+data_path <- "../data/LoanStats3a.csv"
+
+# Load data into H2O
+df <- h2o.importFile(data_path)
+```
+
+
+Get a summary of your dataset:
+```{r}
+h2o.describe(df)
+```
+
+Creating a Target to Predict
+Depending on the stage of your data science project, your data may or may not have a target included (if you go to Kaggle for example the data will include a target (aka response column). In this case our data does not have a target so we will create one.
+
+Given that we want to predict if a borrower will default or not, which column could we use to create a target (aka repsonse column)?
+
+Take a look at the column names in the list below. Does anything look useful?
+
+```{r}
+h2o.colnames(df)
+```
+
+What about loan_status?
+
+How could we take this multi-level column (aka feature) and convert it into a binary feature?
+
+The following cells will show you how to:
+
+look at the unique levels in the loan_status column
+remove unwanted rows bin multiple levels into two levels
+
+```{r}
+h2o.table(df$loan_status)
+```
+
+Let's also check for missing values. We see that there are three missing values in the column we would like to use as our target.
+
+```{r}
+h2o.nacnt(df$loan_status)
+```
+
+Because this will be our response column if there are missing values we will want to remove the corresponding rows. 
+
+```{r}
+df <- df[!is.na(df$loan_status), ]
+print(paste0("How many missing values for loan status do we have now? ", h2o.nacnt(df$loan_status)))
+```
+
+We see that some historic loans would no longer meet the Lending Club's credit policy. Let's remove all loans that do not meet LC's credit policy
+
+```{r}
+credit_policy <- h2o.grep("Does not meet the credit policy.  Status:", df$loan_status, output.logical = T)
+df <- h2o.cbind(df, credit_policy)
+names(df)[53] <- c("CreditPolicyNotMet")
+df <- df[df$CreditPolicyNotMet != 1, ]
+```
+
+Now that we removed applicants that would no longer meet the credit approval policy, let's take a look at what else should be removed.
+
+```{r}
+h2o.table(df$loan_status)
+```
+
+How would you subset your data to only include completed loans?
+
+Hint: "Current", "In Grace Period", "Late (16-30 days)", "Late (31-120 days)" are ongoing loans.
+
+```{r}
+to_remove <- c("Current", "In Grace Period", "Late (16-30 days)", "Late (31-120 days)")
+df <- df[!(df$loan_status %in% to_remove),]
+h2o.table(df$loan_status)
+```
+
+We are going to assume anyone who is late over 121 (corresponding to the loan_status = Charged Off) is going to default, so we will lump Default and Charged Off into the same bucket. This will leave us with only two levels Default and Fully Paid.
+
+```{r}
+df[,"loan_status"] <- h2o.ifelse((df[,"loan_status"] == "Default" || df[,"loan_status"] == "Charged Off"), "Default", "Fully Paid")
+h2o.table(df$loan_status)
+```
+
+Now that we have our target in the form we want, let's rename it to something more conclusive sounding loan_result.
+
+```{r}
+names(df)[which(names(df) %in% "loan_status")] <- c("loan_result")
+h2o.table(df$loan_result)
+```
+
+Feature Preprocessing
+From the variables we want to keep, which variables might need cleanup? Take a look at all the enum type columns.
+
+Hint: Are there any enum columns that could be converted into numeric columns?
+
+```{r}
+cat_col_index <- h2o.columns_by_type(df, "categorical")
+h2o.head(df[cat_col_index], n=1)
+```
+
+We can see that  revol_util has been parsed as enums, because of special characters, but should really be type numeric, because it holds numeric values.
+
+```{r}
+h2o.head(df["revol_util"], n=2)
+```
+To do string cleaning/munging on a categorical/enum type column, you first have to covert that column to string type with .ascharacter().
+
+```{r}
+df["revol_util"] <- h2o.ascharacter(df["revol_util"])
+df["revol_util"] <- h2o.gsub(df["revol_util"], pattern = "%", replacement = "")
+df["revol_util"] <- h2o.trim(df["revol_util"])
+df["revol_util"] <- h2o.asnumeric(df["revol_util"])
+h2o.head(df["revol_util"], n=2)
+```
+
+Now that we have a numeric type column we can get a few statistics on this column such as min and max values.
+
+```{r}
+print(h2o.min(df$revol_util, na.rm = T))
+print(h2o.max(df$revol_util, na.rm = T))
+```
+
+Feature Engineering
+What new features could we create from the features we currently have?
+
+Let's create a new features called credit_length_in_years. Note: H2O coverts the date columns to milliseconds since January 1, 1970 behind the scenes.
+
+```{r}
+str(df$issue_d)
+print(h2o.head(df["issue_d"], n=2))
+print(h2o.head(h2o.year(df["issue_d"]), n=2))
+print(h2o.head(df["earliest_cr_line"], n=2))
+df["credit_length_in_years"] = h2o.year(df["issue_d"]) - h2o.year(df["earliest_cr_line"])
+h2o.head(df["credit_length_in_years"], n=3)
+```
+
+How to Export to CSV
+After you've finished your data and feature preprocessing, along with feature engineering you may want to download your dataset as a csv so that the next time you run this notebook you don't have to redo all the preprocessing steps.
+```{r}
+#h2o.exportFile(df, "preprocessed_loan_dataset.csv")
+```
+
+Split the Dataset
+Split the original dataframe into 3 dataframes: training, validation, and test. We use the validation set to help prevent overfitting.
+
+```{r}
+splitDF <- h2o.splitFrame(df, ratios=c(0.7,.15) , seed = 1234)
+train <- splitDF[[1]]
+valid <- splitDF[[2]]
+test <- splitDF[[3]]
+```
+
+```{r}
+# Hint: Use h2o.table to see if the ratio of the response class is maintained
+orig_distribution <- h2o.table(df["loan_result"])
+orig_distribution["Percentage"] <- orig_distribution["Count"]/h2o.nrow(df)
+
+train_distribution <- h2o.table(train["loan_result"])
+train_distribution["Percentage"] <- train_distribution["Count"]/h2o.nrow(train)
+
+valid_distribution <- h2o.table(valid["loan_result"])
+valid_distribution["Percentage"] <- valid_distribution["Count"]/h2o.nrow(valid)
+
+test_distribution <- h2o.table(test["loan_result"])
+test_distribution["Percentage"] <- test_distribution["Count"]/h2o.nrow(test)
+
+print(orig_distribution)
+print(train_distribution)
+print(valid_distribution)
+print(test_distribution)
+```
+
+Build your Models
+Now we will run a Generalized Linear Model (GLM) and a Gradient Boosting Machine (GBM).
+
+Specify your target variable (target) and the predictors (predictor_columns) that you want to pass to the algorithms.
+
+```{r}
+target <- "loan_result"
+predictor_columns <- c("loan_amnt", "term", "home_ownership", "annual_inc", "verification_status", "purpose",
+          "addr_state", "dti", "delinq_2yrs", "open_acc", "pub_rec", "revol_bal", "total_acc",
+          "emp_length", "credit_length_in_years", "inq_last_6mths", "revol_util")
+```
+
+```{r}
+glm_model = h2o.glm(x=predictor_columns, y = target, model_id = "GLM", family = "binomial", training_frame = train, validation_frame = valid)
+```
+
+Next we will build a GBM so we can compare the performance.
+
+```{r}
+gbm_model = h2o.gbm(x=predictor_columns, y = target, model_id = "GBM", distribution = "bernoulli", training_frame = train, validation_frame = valid)
+```
+
+Evaluate Model Results
+Compare the results for each model. Which Algorigthm had a better AUC?
+
+```{r}
+print(paste0("GLM AUC on training = ", as.character(h2o.auc(glm_model, train = TRUE)), " and GLM AUC on validation = ", as.character(h2o.auc(glm_model, valid = TRUE))))
+
+print(paste0("GBM AUC on training = ", as.character(h2o.auc(gbm_model, train = TRUE)), " and GBM AUC on validation = ", as.character(h2o.auc(gbm_model, valid = TRUE))))
+```
+
+Let's take a look at the ROC curves for the GLM and GBM, as well as their corresponding standardized coefficients plot and variable importance plot.
+
+The ROC Curve
+GLM
+
+```{r}
+glm_perf <- h2o.performance(glm_model, valid = T)
+plot(glm_perf)
+```
+
+Standardized Coefficients Plot
+We can look at the standardized coefficients plot for our GLM to determine which features had the most influence on each outcome. We can also get the confusion matrix to see how good our model was at predicting each class.
+
+```{r}
+h2o.std_coef_plot(glm_model, num_of_features = 10)
+print(h2o.confusionMatrix(glm_model, valid=T))
+```
+
+The ROC Curve & Scoring History
+GBM
+```{r}
+gbm_perf <- h2o.performance(gbm_model, valid = T)
+plot(gbm_perf)
+```
+
+```{r}
+# Plot the scoring history to make sure you're not overfitting
+plot(gbm_model)
+```
+
+Feature Importance Plot
+Take a look at the variable importance for the GBM and generate a confusion matrix for max F1 threshold.
+
+```{r}
+h2o.varimp_plot(gbm_model, num_of_features = 10)
+print(h2o.confusionMatrix(gbm_model, valid=T))
+```
+
+Scoring
+Use your model to predict on the test dataset (or new data).
+
+```{r}
+pred <- h2o.predict(gbm_model, test)
+h2o.head(pred, n=3)
+```
+
+We can verify the cutoff used to decide what will be Fully Paid and what will be Default by looking at the F1 score threshold.
+
+```{r}
+h2o.F1(gbm_perf)
+```
+If you want to take a look at the actual results versus what the algo predicted you can cbind the predictions to the test dataset's prediction column.
+
+```{r}
+h2o.head(h2o.cbind(test['loan_result'], pred), n=3)
+```
+
+Saving Models
+We can now save our model a binary model that we can use the next time we launch our H2O cluster (note: the saved model must be used with the same version of H2O that it was created with).
+
+```{r}
+#h2o.saveModel(model=gbm_model)
+```
+
+Grid Search
+Now that we've gone through the process of manually training models, let's learn how to speed up the process and make use of H2O's Grid Search to train a bunch of models.
+
+H2O offers two types of grid search -- Cartesian and RandomDiscrete. Cartesian is the traditional, exhaustive, grid search, which searches over all the combinations of model hyperparameters. Random Grid Search will sample sets of model hyperparameters randomly for some specified period of time or constraint.
+
+We will continue on with the GBM algorithm to demonstrate H2O's grid search functionality.
+
+Cartesian Grid Search
+We first need to define a grid of GBM model hyperparameters. For this particular example, we will grid over the following model parameters:
+
+learn_rate
+max_depth
+ntrees
+
+```{r}
+gbm_hyperparams <- list('learn_rate' = c(.01, .1, .5), 
+                'max_depth' = c(3, 5, 9),
+                'ntrees' = c(50, 200, 500))
+
+gbm_grid_cart <- h2o.grid(algorithm = "gbm", grid_id = "gbm_cartesian", x=predictor_columns, y=target, training_frame = train, validation_frame = valid, seed=1234, hyper_params = gbm_hyperparams)
+```
+
+Compare model performance
+To compare the model performance among all the models in a grid, sorted by a particular metric (e.g. AUC), you can use the get_grid method.
+
+```{r}
+gbm_grid_cart_table <- h2o.getGrid(gbm_grid_cart@grid_id, sort_by='auc', decreasing=T)
+print(gbm_grid_cart_table)
+```
+
+```{r}
+# get the top model to use
+best_model <- h2o.getModel(gbm_grid_cart_table@model_ids[[1]])
+best_model
+```
+
+Random Grid Search
+This example is set to run fairly quickly -- increase max_runtime_secs or max_models to cover more of the hyperparameter space. Also, you can expand the hyperparameter space of each of the algorithms by modifying the hyper parameter list below.
+
+```{r}
+gbm_hyperparams_rand = list('learn_rate' = c(0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1), 
+                'max_depth' = c(2, 3, 4, 5, 6, 7, 8, 9, 10),
+                'ntrees' = c(50, 100, 200, 500, 1000))
+```
+
+the search_criteria parameter allows you to pass a dictionary of directives which control the search of the hyperparameter space. The default strategy “Cartesian” covers the entire space of hyperparameter combinations. Specify the “RandomDiscrete” strategy to get random search of all the combinations of your hyperparameters. RandomDiscrete should usually be combined with at least one early stopping criterion: max_models and/or max_runtime_secs
+
+```{r}
+search_criteria = list('strategy' = 'RandomDiscrete', 'max_runtime_secs' = 30)
+```
+
+```{r}
+gbm_grid_random <- h2o.grid(algorithm = "gbm", grid_id = "gbm_random", x=predictor_columns, y=target, training_frame = train, validation_frame = valid, seed=1234, hyper_params = gbm_hyperparams, search_criteria = search_criteria)
+```
+
+Compare model performance
+
+```{r}
+gbm_grid_random_table <- h2o.getGrid(gbm_grid_random@grid_id, sort_by='auc', decreasing=T)
+print(gbm_grid_random_table)
+```
+
+
+AutoML
+After all the hard manual labor above, we will now see how we can automate our previous work with AutoML.
+
+The H2O AutoML interface is designed to have as few parameters as possible so that all the user needs to do is point to their dataset, identify the response column and optionally specify a time constraint or limit on the number of total models trained.
+
+Note: by default AutoML will run cross-validation for all models, and therefore use the cross-validation metrics to generate the leaderboard results.
+
+```{r}
+aml <- h2o.automl(y = target,
+                  x = predictor_columns,
+                  training_frame = df,
+                  max_runtime_secs = 60,
+                  seed = 12345,
+                  project_name = "lending_club")
+
+```
+
+Print out the leaderboard (the leaderboard is a table that ranks your models by a default metric based on the problem type (the second column of the leaderboard). In binary classification problems, that metric is AUC, and in multiclass classification problems, the metric is mean per-class error. In regression problems, the default sort metric is deviance. Some additional metrics are also provided, for convenience.
+
+```{r}
+aml@leaderboard
+```
+
+Print the results of the leader model
+
+```{r}
+print(aml@leader)
+```
+
+You can now use the automl object to make predictions using the best model. note: the test frame was used during training so this is just an illustration of how you could pass in a new dataset on which to predict.
+
+```{r}
+h2o.predict(aml@leader, newdata = test)
+```
+
+Shutdown Your H2O Cluster
+
+```{r}
+h2o.shutdown(prompt = F)
+```
+
+
+
+
+
+
+
+
+
