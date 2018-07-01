@@ -30,21 +30,6 @@ if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
 install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/9/R")
 ```
 
-### Install H2O in Python
-```
-pip install requests
-pip install tabulate
-pip install scikit-learn
-pip install colorama
-pip install future
-```
-```
-# The following command removes the H2O module for Python.
-pip uninstall h2o
-
-# Next, use pip to install this version of the H2O Python module.
-pip install http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/9/Python/h2o-3.18.0.9-py2.py3-none-any.whl
-```
 ## Part 1: Binary Classification
 
 For the AutoML binary classification demo, we use a subset of the [Product Backorders](https://www.kaggle.com/tiredgeek/predict-bo-trial/data) dataset.  The goal here is to predict whether or not a product will be put on backorder status, given a number of product metrics such as current inventory, transit time, demand forecasts and prior sales.
@@ -58,10 +43,9 @@ In this tutorial, you will:
 - Explore the ensemble composition.
 - Save the leader model (binary format & MOJO format).
 
-Demo Notebooks:
+Demos:
 
  - [R/automl\_binary\_classification\_product\_backorders.Rmd](./R/automl_binary_classification_product_backorders.Rmd)  [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
- - [Python/automl\_binary\_classification\_product\_backorders.ipynb](./Python/automl_binary_classification_product_backorders.ipynb) [<img src="https://www.python.org/static/favicon.ico"  width=16>](https://www.python.org/static/favicon.ico)
 
 
 ## Part 2: Regression
@@ -80,10 +64,9 @@ In this tutorial, you will:
 - Predict using the AutoML leader model.
 - Compute performance of the AutoML leader model on a test set.
 
-Demo Notebooks:
+Demo:
 
  - [R/automl\_regression\_powerplant\_output.Rmd](./R/automl_regression_powerplant_output.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
- - [Python/automl\_regression\_powerplant\_output.ipynb](./Python/automl_regression_powerplant_output.ipynb) [<img src="https://www.python.org/static/favicon.ico"  width=16>](https://www.python.org/static/favicon.ico)
 
 ## Part 3: Lending Club
 
@@ -102,8 +85,7 @@ In this tutorial, you will:
 - View the leaderboard (based on cross-validation metrics).
 - Predict using the AutoML leader model.
 
-Demo Notebooks:
+Demos:
 
  - [R/automl\_lending\_club.Rmd](./R/automl_lending_club.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
- - [Python/automl\_lending\_club.ipynb](./Python/automl_lending_club.ipynb) [<img src="https://www.python.org/static/favicon.ico"  width=16>](https://www.python.org/static/favicon.ico)
 
