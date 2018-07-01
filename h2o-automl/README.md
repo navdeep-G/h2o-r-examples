@@ -10,7 +10,7 @@ The current version of AutoML (in H2O 3.18.*) trains and cross-validates a defau
 
 ## Setting Up Environment for AutoML Demos:
 
-###Prerequisites for H2O
+### Prerequisites for H2O
 
 [H2O-3 Requirements](http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/9/docs-website/h2o-docs/welcome.html#requirements)
 
@@ -27,7 +27,7 @@ if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
 }
 
 # Now we download, install and initialize the H2O package for R.
-install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wolpert/9/R")
+install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wright/2/R")# The following 
 ```
 
 ## Part 1: Binary Classification
@@ -45,7 +45,7 @@ In this tutorial, you will:
 
 Demos:
 
- - [R/automl\_binary\_classification\_product\_backorders.Rmd](./R/automl_binary_classification_product_backorders.Rmd)  [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
+ - [automl\_binary\_classification\_product\_backorders.Rmd](./automl_binary_classification_product_backorders.Rmd)  [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
 
 
 ## Part 2: Regression
@@ -66,7 +66,7 @@ In this tutorial, you will:
 
 Demo:
 
- - [R/automl\_regression\_powerplant\_output.Rmd](./R/automl_regression_powerplant_output.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
+ - [automl\_regression\_powerplant\_output.Rmd](./automl_regression_powerplant_output.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
 
 ## Part 3: Lending Club
 
@@ -87,5 +87,5 @@ In this tutorial, you will:
 
 Demos:
 
- - [R/automl\_lending\_club.Rmd](./R/automl_lending_club.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
+ - [automl\_lending\_club.Rmd](./automl_lending_club.Rmd) [<img src="https://www.r-project.org//favicon-16x16.png" width=18>](https://www.r-project.org//favicon-16x16.png)
 
