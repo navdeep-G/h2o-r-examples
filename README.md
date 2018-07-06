@@ -1,5 +1,7 @@
 # H2O R Examples
 
+## [Overview of H2O-3](https://github.com/navdeep-G/h2o-r-examples/blob/master/h2o.pdf)
+
 ## Setting Up Environment for H2O:
 
 ### Prerequisites for H2O
@@ -21,7 +23,3 @@ if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
 # Now we download, install and initialize the H2O package for R.
 install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wright/2/R")
 ```
-
-### Repo Overview
-
-* [Overview of H2O-3](https://github.com/navdeep-G/h2o-r-examples/blob/master/h2o.pdf)
