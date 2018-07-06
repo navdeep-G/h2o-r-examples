@@ -2,9 +2,7 @@
 
 ## [Overview of H2O-3](https://github.com/navdeep-G/h2o-r-examples/blob/master/h2o.pdf)
 
-## Setting Up Environment for H2O:
-
-### Prerequisites for H2O
+## Prerequisites for H2O
 
 [H2O-3 Requirements](http://h2o-release.s3.amazonaws.com/h2o/rel-wright/2/docs-website/h2o-docs/welcome.html#requirements)
 
