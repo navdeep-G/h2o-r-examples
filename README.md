@@ -19,5 +19,5 @@ if (! (pkg %in% rownames(installed.packages()))) { install.packages(pkg) }
 }
 
 # Now we download, install and initialize the H2O package for R.
-install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wright/2/R")
+install.packages("h2o", type="source", repos="http://h2o-release.s3.amazonaws.com/h2o/rel-wright/4/R")
 ```
